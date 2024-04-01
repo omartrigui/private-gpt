@@ -8,6 +8,8 @@ settings-me.yaml
 .pytest_cache
 .mypy_cache
 
+documents/
+
 # byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

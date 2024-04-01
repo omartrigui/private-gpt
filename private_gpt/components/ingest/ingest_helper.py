@@ -73,23 +73,29 @@ class IngestionHelper:
     ) -> list[Document]:
         documents = IngestionHelper._load_file_to_documents(file_name, file_data)
         for document in documents:
-            document.metadata["file_name"] = file_name
+            document.metadata["file_name"] = str(file_data)
         IngestionHelper._exclude_metadata(documents)
         return documents
 
     @staticmethod
     def _load_file_to_documents(file_name: str, file_data: Path) -> list[Document]:
-        logger.debug("Transforming file_name=%s into documents", file_name)
+        logger.info("Transforming file=%s into documents", str(file_data))
         extension = Path(file_name).suffix
-        reader_cls = FILE_READER_CLS.get(extension)
-        if reader_cls is None:
-            logger.debug(
-                "No reader found for extension=%s, using default string reader",
-                extension,
-            )
-            # Read as a plain text
+
+        # do not alter the original file_data
+        if extension == ".md" or extension == ".txt":
+            print(file_data.read_text())
             string_reader = StringIterableReader()
             return string_reader.load_data([file_data.read_text()])
+        
+        reader_cls = FILE_READER_CLS.get(extension)
+        if reader_cls is None:
+            logger.warn(
+                "No reader found for file=%s with extension=%s",
+                file_name,
+                extension,
+            )
+            return []
 
         logger.debug("Specific reader found for extension=%s", extension)
         return reader_cls().load_data(file_data)

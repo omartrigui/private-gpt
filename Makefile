@@ -1,5 +1,6 @@
 # Any args passed to the make script, use with $(call args, default_value)
 args = `arg="$(filter-out $@,$(MAKECMDGOALS))" && echo $${arg:-${1}}`
+SHELL := /bin/bash
 
 ########################################################################################################################
 # Quality checks
@@ -49,7 +50,7 @@ api-docs:
 	PGPT_PROFILES=mock poetry run python scripts/extract_openapi.py private_gpt.main:app --out fern/openapi/openapi.json
 
 ingest:
-	@poetry run python scripts/ingest_folder.py $(call args)
+	@poetry run python scripts/ingest_folder.py --ignore=.git documents/
 
 stats:
 	poetry run python scripts/utils.py stats
@@ -59,6 +60,19 @@ wipe:
 
 setup:
 	poetry run python scripts/setup
+
+clean:
+	rm -rf local_data/* models/*
+
+system-configure:
+	sudo add-apt-repository --yes ppa:deadsnakes/ppa
+	sudo apt update && sudo apt install -y python3.11
+	sudo apt install -y build-essential manpages-dev software-properties-common
+	sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+	sudo apt update && sudo apt install gcc-11 g++-11 tmux
+	curl -sSL https://install.python-poetry.org | python3 -
+	echo 'export PATH="/home/ubuntu/.local/bin:$$PATH"' >> ~/.bashrc
+	source ~/.bashrc && poetry env use 3.11 && poetry install --extras "ui llms-llama-cpp embeddings-huggingface vector-stores-qdrant"
 
 list:
 	@echo "Available commands:"
