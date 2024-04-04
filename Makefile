@@ -34,7 +34,7 @@ check:
 ########################################################################################################################
 
 run:
-	poetry run python -m private_gpt
+	PGPT_PROFILES=local poetry run python -m private_gpt
 
 dev-windows:
 	(set PGPT_PROFILES=local & poetry run python -m uvicorn private_gpt.main:app --reload --port 8001)
@@ -64,7 +64,20 @@ setup:
 clean:
 	rm -rf local_data/* models/*
 
-system-configure:
+gpu-drivers:
+	echo "Installing nvidia drivers"
+	wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/sbsa/cuda-ubuntu2204.pin
+	sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
+	wget https://developer.download.nvidia.com/compute/cuda/12.4.1/local_installers/cuda-repo-ubuntu2204-12-4-local_12.4.1-550.54.15-1_arm64.deb
+	sudo dpkg -i cuda-repo-ubuntu2204-12-4-local_12.4.1-550.54.15-1_arm64.deb
+	sudo cp /var/cuda-repo-ubuntu2204-12-4-local/cuda-*-keyring.gpg /usr/share/keyrings/
+	sudo apt-get update
+	sudo apt-get -y install cuda-toolkit-12-4
+	sudo nvcc --version
+	sudo nvidia-smi
+
+system-configure: gpu-drivers
+	echo "Installing private-gpt dependencies"
 	sudo add-apt-repository --yes ppa:deadsnakes/ppa
 	sudo apt update && sudo apt install -y python3.11
 	sudo apt install -y build-essential manpages-dev software-properties-common
@@ -72,7 +85,8 @@ system-configure:
 	sudo apt update && sudo apt install gcc-11 g++-11 tmux
 	curl -sSL https://install.python-poetry.org | python3 -
 	echo 'export PATH="/home/ubuntu/.local/bin:$$PATH"' >> ~/.bashrc
-	source ~/.bashrc && poetry env use 3.11 && poetry install --extras "ui llms-llama-cpp embeddings-huggingface vector-stores-qdrant"
+	source ~/.bashrc && poetry env use 3.11
+	source ~/.bashrc && CMAKE_ARGS='-DLLAMA_CUBLAS=on' poetry install --extras "ui llms-llama-cpp embeddings-huggingface vector-stores-qdrant"
 
 list:
 	@echo "Available commands:"
